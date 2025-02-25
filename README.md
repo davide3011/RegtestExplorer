@@ -61,41 +61,48 @@ Il file **style.css** (in ```static/```) definisce le variabili di colore, le ti
 
 ## Configurazione del Bitcoin Node
 
-Per far funzionare correttamente l’explorer, il nodo Bitcoin deve essere configurato per abilitare l’accesso RPC. Ecco un esempio di configurazione per il file ```bitcoin.conf``` in modalità regtest:
+Per far funzionare correttamente l'explorer, il nodo Bitcoin deve essere configurato per abilitare l'accesso RPC. Ecco un esempio di configurazione per il file ```bitcoin.conf``` in modalità regtest:
 
 ```bash
 # Abilita il server RPC
 server=1
 
 # Imposta le credenziali RPC (devono corrispondere a quelle impostate in app.py)
-rpcuser=RPC_USER
+rpcuseer=RPC_USER
 rpcpassword=RPC_PASSWORD
 
-# Abilita il supporto per la modalità regtest
+# Abilita la modalità regtest
 regtest=1
 
 # Consenti connessioni RPC da localhost
 rpcallowip=127.0.0.1
 
+# Se desideri consentire connessioni da altri dispositivi, usa:
+# rpcallowip=0.0.0.0/0 oppure rpcallowip=192.168.1.0/24
+
 # Imposta la porta RPC
-rpcport=RPC_PORT
+rpcport=8332
 ```
 
-**NOTA:** è possibile avere il nodo in esecuzione in un altro dispositivo. In quel caso rpcallowip deve permettere la connessione:
-```
-rpcallowip=0.0.0.0/0 # per consentire connessioni da qualsiasi indirizzo
+Per semplificare la configurazione di Bitcoin Core, si consiglia di utilizzare un generatore di file di configurazione online. Ad esempio, il
+[Bitcoin Core Config Generator](https://jlopp.github.io/bitcoin-core-config-generator/) consente di creare in modo interattivo un file 
+bitcoin.conf personalizzato in base alle proprie esigneze. Questo strumento aiuta a evitare errori manuali e garantisce una configurazione ottimale del nodo.
 
-rpcallowip=192.168.1.0/24 # per limitare l'accesso a una specifica sottorete
-```
+Assicurati che il file ```bitcoin.conf``` si trovi nella cartella di dati del nodo Bitcoin.
 
+## Scaricare Bitcoin Core
 
-Assicurati che il file ```bitcoin.conf``` si trovi nella cartella di dati del nodo Bitcoin. Se stai usando un nodo in modalità regtest, dovrai avviare il nodo in regtest con il comando appropriato (ad es. ```bitcoind -regtest```).
+Per scaricare Bitcoin Core, visita il sito ufficiale: https://bitcoincore.org/en/download/
+
+## Installazione e Avvio
 
 ## Installazione e Avvio
 ### 1. Prerequisiti
-Assicurati di avere installato Python 3 e i seguenti pacchetti:
-- Flask
-- python-bitcoinrpc
+Assicurati di avere installato Python 3 e il package manager pip. Dunque, installa tutti i pacchetti necessari definiti nel file ```requirements.txt```:
+
+```bash
+pip install -r requirements.txt
+```
 
 ### 2. Configurazione
 
@@ -135,4 +142,4 @@ Ogni richiesta (oltre agli eventi interni dell'app) verrà registrata in explore
 ## Licenza
 Questo progetto è distribuito sotto la Licenza MIT.
 
-Vedi il file LICENSE per maggiori dettagli.
+Vedi il file [LICENSE](LICENSE) per maggiori dettagli.
