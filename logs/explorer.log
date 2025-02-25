@@ -1,9 +1,1 @@
-2025-02-25 13:34:37,457 INFO: Explorer avviato [in /home/davide3011/RegtestExplorer/app.py:312]
-2025-02-25 13:34:37,472 INFO: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
- * Running on http://127.0.0.1:5000 [in /home/davide3011/RegtestExplorer/venv/lib/python3.11/site-packages/werkzeug/_internal.py:97]
-2025-02-25 13:34:37,472 INFO: [33mPress CTRL+C to quit[0m [in /home/davide3011/RegtestExplorer/venv/lib/python3.11/site-packages/werkzeug/_internal.py:97]
-2025-02-25 13:34:48,550 INFO: 127.0.0.1 - - [25/Feb/2025 13:34:48] "GET / HTTP/1.1" 200 - [in /home/davide3011/RegtestExplorer/venv/lib/python3.11/site-packages/werkzeug/_internal.py:97]
-2025-02-25 13:34:48,603 INFO: 127.0.0.1 - - [25/Feb/2025 13:34:48] "GET /static/style.css HTTP/1.1" 200 - [in /home/davide3011/RegtestExplorer/venv/lib/python3.11/site-packages/werkzeug/_internal.py:97]
-2025-02-25 13:34:48,698 INFO: 127.0.0.1 - - [25/Feb/2025 13:34:48] "[33mGET /favicon.ico HTTP/1.1[0m" 404 - [in /home/davide3011/RegtestExplorer/venv/lib/python3.11/site-packages/werkzeug/_internal.py:97]
-2025-02-25 13:34:55,540 INFO: 127.0.0.1 - - [25/Feb/2025 13:34:55] "GET /block/000001c07088e5295bba08cfda73ad1372654531feb18dde2868d22400ff0408 HTTP/1.1" 200 - [in /home/davide3011/RegtestExplorer/venv/lib/python3.11/site-packages/werkzeug/_internal.py:97]
-2025-02-25 13:34:55,573 INFO: 127.0.0.1 - - [25/Feb/2025 13:34:55] "[36mGET /static/style.css HTTP/1.1[0m" 304 - [in /home/davide3011/RegtestExplorer/venv/lib/python3.11/site-packages/werkzeug/_internal.py:97]
+
