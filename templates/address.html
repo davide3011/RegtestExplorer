@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="address-info">
+  <h2>Dettagli Indirizzo</h2>
+  <div class="detail-row">
+    <span class="detail-label">Indirizzo:</span>
+    <span class="detail-value">{{ address }}</span>
+  </div>
+  <div class="detail-row">
+    <span class="detail-label">Totale UTXO:</span>
+    <span class="detail-value">{{ total_amount | fnum }} BTC</span>
+  </div>
+  <div class="detail-row">
+    <span class="detail-label">Altezza di Scan:</span>
+    <span class="detail-value">{{ height }}</span>
+  </div>
+  
+  <h3>Transazioni (UTXO) Riguardanti l'Indirizzo</h3>
+  {% if unspents %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>TxID</th>
+          <th>Importo (BTC)</th>
+          <th>Blockhash</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for utxo in unspents %}
+        <tr>
+          <td>
+            <a href="{{ url_for('transaction', txid=utxo.txid) }}">{{ utxo.txid }}</a>
+          </td>
+          <td>{{ utxo.amount | fnum }}</td>
+          <td>
+            <a href="{{ url_for('block', identifier=utxo.blockhash) }}">{{ utxo.blockhash }}</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p>Nessuna transazione trovata per questo indirizzo.</p>
+  {% endif %}
+</div>
+{% endblock %}

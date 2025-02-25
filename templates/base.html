@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Blockchain Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><a href="{{ url_for('index') }}">Blockchain Explorer</a></h1>
+            <form action="{{ url_for('search') }}" method="get">
+                <input type="text" name="q" placeholder="Cerca per altezza, hash, indirizzo o txid..." required>
+                <button type="submit">Cerca</button>
+            </form>
+        </div>
+    </header>
+    <main class="container">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-messages">
+              {% for message in messages %}
+                <p>{{ message }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Blockchain Explorer by Davide3011</p>
+        </div>
+    </footer>
+</body>
+</html>
