@@ -95,8 +95,6 @@ Assicurati che il file ```bitcoin.conf``` si trovi nella cartella di dati del no
 Per scaricare Bitcoin Core, visita il sito ufficiale: https://bitcoincore.org/en/download/
 
 ## Installazione e Avvio
-
-## Installazione e Avvio
 ### 1. Prerequisiti
 Assicurati di avere installato Python 3 e il package manager pip. Dunque, installa tutti i pacchetti necessari definiti nel file ```requirements.txt```:
 
