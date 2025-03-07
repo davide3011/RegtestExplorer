@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
+
 <!-- Sezione 1: Informazioni Generali sul Blocco -->
 <div class="block-general-info">
-  <h2>Informazioni Generali sul Blocco</h2>
+  <h2>Informazioni generali</h2>
   <div class="detail-row">
     <span class="detail-label">Hash:</span>
     <span class="detail-value">
@@ -14,7 +15,7 @@
     <span class="detail-value">{{ general_info.confirmations }}</span>
   </div>
   <div class="detail-row">
-    <span class="detail-label">Altezza:</span>
+    <span class="detail-label">Height:</span>
     <span class="detail-value">{{ general_info.height }}</span>
   </div>
   <div class="detail-row">
@@ -43,14 +44,14 @@
   </div>
   <div class="detail-row">
     <span class="detail-label">Difficulty:</span>
-    <span class="detail-value">{{ general_info.difficulty | fnum }}</span>
+    <span class="detail-value">{{ general_info.difficulty | int  }}</span>
   </div>
   <div class="detail-row">
     <span class="detail-label">Chainwork:</span>
     <span class="detail-value">{{ general_info.chainwork }}</span>
   </div>
   <div class="detail-row">
-    <span class="detail-label">N° Tx:</span>
+    <span class="detail-label">n° Tx:</span>
     <span class="detail-value">{{ general_info.nTx }}</span>
   </div>
   <div class="detail-row">
@@ -81,8 +82,6 @@
   </div>
 </div>
 
-<hr>
-
 <!-- Sezione 2: Transazione Coinbase -->
 <div class="block-coinbase">
   <h2>Transazione Coinbase</h2>
@@ -93,33 +92,24 @@
         <a href="{{ url_for('transaction', txid=coinbase_tx.txid) }}">{{ coinbase_tx.txid }}</a>
       </span>
     </div>
-    {% if coinbase_tx.vout and coinbase_tx.vout|length > 0 %}
-      <div class="detail-row">
-        <span class="detail-label">Importo:</span>
-        <span class="detail-value">{{ coinbase_tx.vout[0].value | fnum }} BTC</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Address:</span>
-        <span class="detail-value">
-          {% set spk = coinbase_tx.vout[0].scriptPubKey %}
-          {% if spk.address %}
-            <a href="{{ url_for('address', address=spk.address) }}">{{ spk.address }}</a>
-          {% elif spk.addresses %}
-            <a href="{{ url_for('address', address=spk.addresses[0]) }}">{{ spk.addresses[0] }}</a>
-          {% else %}
-            N/A
-          {% endif %}
-        </span>
-      </div>
-    {% else %}
-      <p>Nessun output coinbase trovato.</p>
-    {% endif %}
+    <div class="detail-row">
+      <span class="detail-label">Amount:</span>
+      <span class="detail-value">{{ coinbase_tx.value | fnum }} BTC</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Address:</span>
+      <span class="detail-value">
+        {% if coinbase_tx.address %}
+          <a href="{{ url_for('address', address=coinbase_tx.address) }}">{{ coinbase_tx.address }}</a>
+        {% else %}
+          N/A
+        {% endif %}
+      </span>
+    </div>
   {% else %}
     <p>Nessuna transazione coinbase trovata.</p>
   {% endif %}
 </div>
-
-<hr>
 
 <!-- Sezione 3: Altre Transazioni -->
 <div class="block-tx-summary">
@@ -129,26 +119,24 @@
       <thead>
         <tr>
           <th>TxID</th>
-          <th>Size</th>
           <th>Virtual Size (vsize)</th>
           <th>Weight</th>
-          <th>Locktime</th>
+          <th>Fee (BTC)</th>
         </tr>
       </thead>
       <tbody>
         {% for tx in normal_txs %}
         <tr>
           <td><a href="{{ url_for('transaction', txid=tx.txid) }}">{{ tx.txid }}</a></td>
-          <td>{{ tx.size }} bytes</td>
           <td>{{ tx.vsize }} bytes</td>
           <td>{{ tx.weight }}</td>
-          <td>{{ tx.locktime }}</td>
+          <td>{{ tx.fee | fnum }} BTC</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   {% else %}
-    <p>Nessuna transazione normale trovata.</p>
+    <p>No transactions found.</p>
   {% endif %}
 </div>
 

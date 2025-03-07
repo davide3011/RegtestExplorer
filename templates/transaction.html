@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+
 <!-- Sezione 1: Dati Generali della Transazione -->
 <div class="tx-general-info">
   <h2>Informazioni Generali</h2>
@@ -22,7 +23,7 @@
     <span class="detail-value">{{ tx_info.hash }}</span>
   </div>
   <div class="detail-row">
-    <span class="detail-label">Dimensione:</span>
+    <span class="detail-label">Stripped size:</span>
     <span class="detail-value">{{ tx_info.size }} bytes</span>
   </div>
   <div class="detail-row">
@@ -43,75 +44,96 @@
   </div>
   <div class="detail-row">
     <span class="detail-label">Fee:</span>
-    <span class="detail-value">{{ fee | fnum }} BTC</span>
-  </div>
-</div>
-
-<hr>
-
-{% if not is_coinbase and sender %}
-<!-- Sezione 2: Mittente (solo se non è coinbase) -->
-<div class="tx-sender-info">
-  <h3>Mittente</h3>
-  <div class="detail-row">
-    <span class="detail-label">Address:</span>
     <span class="detail-value">
-      <a href="{{ url_for('address', address=sender.address) }}">{{ sender.address }}</a>
+      {% if fee is not none %}
+        {{ fee | fnum }} BTC
+      {% else %}
+        N/A
+      {% endif %}
     </span>
   </div>
-  <div class="detail-row">
-    <span class="detail-label">ASM:</span>
-    <span class="detail-value">{{ sender.asm }}</span>
-  </div>
-  <div class="detail-row">
-    <span class="detail-label">Hex:</span>
-    <span class="detail-value">{{ sender.hex }}</span>
-  </div>
-  <div class="detail-row">
-    <span class="detail-label">Type:</span>
-    <span class="detail-value">{{ sender.type }}</span>
-  </div>
-  <div class="detail-row">
-    <span class="detail-label">Importo:</span>
-    <span class="detail-value">{{ sender.value | fnum }} BTC</span>
-  </div>
 </div>
-{% endif %}
 
-<hr>
-
-<!-- Sezione 3: Destinatari (o Output della Transazione Coinbase) -->
-<div class="tx-recipients-info">
-  {% if is_coinbase %}
-    <h3>Output della Transazione Coinbase</h3>
-  {% else %}
-    <h3>Destinatari</h3>
-  {% endif %}
-  {% if recipients %}
-  <table>
-    <thead>
-      <tr>
-        <th>Address</th>
-        <th>Importo (BTC)</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in recipients %}
-      <tr>
-        <td>
-          {% if r.address %}
-            <a href="{{ url_for('address', address=r.address) }}">{{ r.address }}</a>
+<!-- Sezione 2: Input della Transazione -->
+<div class="tx-inputs">
+  <h2>Input</h2>
+  {% if tx_inputs %}
+    {% for vin in tx_inputs %}
+      <div class="detail-row">
+        <span class="detail-label">TxID / Coinbase:</span>
+        <span class="detail-value">
+          {% if vin.txid == "Coinbase" %}
+            Coinbase
+          {% else %}
+            <a href="{{ url_for('transaction', txid=vin.txid) }}">{{ vin.txid }}</a>
+          {% endif %}
+        </span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Vout:</span>
+        <span class="detail-value">
+          {% if vin.vout is not none %}
+            {{ vin.vout }}
           {% else %}
             N/A
           {% endif %}
-        </td>
-        <td>{{ r.value | fnum }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        </span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Sequence:</span>
+        <span class="detail-value">{{ vin.sequence }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">ScriptSig (asm):</span>
+        <span class="detail-value">
+          {% if vin.scriptSig and vin.scriptSig.asm %}
+            {{ vin.scriptSig.asm }}
+          {% else %}
+            N/A
+          {% endif %}
+        </span>
+      </div>
+      <br>
+    {% endfor %}
   {% else %}
-    <p>Nessun destinatario/output trovato.</p>
+    <p>Nessun input trovato.</p>
   {% endif %}
 </div>
+
+<!-- Sezione 3: Output della Transazione -->
+<div class="tx-outputs">
+  <h2>Output</h2>
+  {% if tx_outputs %}
+    {% for vout in tx_outputs %}
+      <div class="detail-row">
+        <span class="detail-label">n:</span>
+        <span class="detail-value">{{ vout.n }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Amount (BTC):</span>
+        <span class="detail-value">{{ vout.value | fnum }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Address:</span>
+        <span class="detail-value">
+          {% if vout.scriptPubKey.address %}
+            <a href="{{ url_for('address', address=vout.scriptPubKey.address) }}">{{ vout.scriptPubKey.address }}</a>
+          {% elif vout.scriptPubKey.addresses %}
+            <a href="{{ url_for('address', address=vout.scriptPubKey.addresses[0]) }}">{{ vout.scriptPubKey.addresses[0] }}</a>
+          {% else %}
+            N/A
+          {% endif %}
+        </span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Type:</span>
+        <span class="detail-value">{{ vout.scriptPubKey.type }}</span>
+      </div>
+      <br>
+    {% endfor %}
+  {% else %}
+    <p>Nessun output trovato.</p>
+  {% endif %}
+</div>
+
 {% endblock %}

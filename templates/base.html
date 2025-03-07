@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Blockchain Explorer</title>
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}" type="image/x-icon"> 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -10,8 +11,8 @@
         <div class="container">
             <h1><a href="{{ url_for('index') }}">Blockchain Explorer</a></h1>
             <form action="{{ url_for('search') }}" method="get">
-                <input type="text" name="q" placeholder="Cerca per altezza, hash, indirizzo o txid..." required>
-                <button type="submit">Cerca</button>
+                <input type="text" name="q" placeholder="Search by block height, hash, address, or txid..." required>
+                <button type="submit">Search</button>
             </form>
         </div>
     </header>

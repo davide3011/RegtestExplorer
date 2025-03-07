@@ -1,43 +1,26 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
-from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
-import re, logging
-from logging.handlers import RotatingFileHandler
-import os
-if not os.path.exists('logs'):
-    os.makedirs('logs')
+from rpc_connection import get_rpc_connection
+from bitcoinrpc.authproxy import JSONRPCException
+import re
 
 app = Flask(__name__)
 app.secret_key = 'sostituisci_con_una_chiave_sicura'
 
-# Configurazione RPC (modifica secondo le configurazioni del 'bitcoin.conf')
-RPC_USER = 'RPC_USER'
-RPC_PASSWORD = 'RPC_PASSWORD'
-RPC_ADDRESS = 'IP_ADDRESS'
-RPC_PORT = 8332
-
-def get_rpc_connection():
-    url = f"http://{RPC_USER}:{RPC_PASSWORD}@{RPC_ADDRESS}:{RPC_PORT}"
-    return AuthServiceProxy(url)
-
+# Funzioni di utilità per validare l'input
 def is_numeric(s):
     return s.isdigit()
 
 def is_hash(s):
-    # Se è esattamente 64 caratteri e non corrisponde a nessun pattern di indirizzo, allora è un hash.
     if len(s) != 64:
         return False
-    # Controlla che la stringa sia esadecimale
     if re.match(r'^[0-9a-fA-F]{64}$', s) is None:
         return False
-    # Nessun indirizzo Bitcoin ha 64 caratteri; se arrivi qui, è un hash
     return True
 
 def is_address(s):
-    # Controlla indirizzi legacy: iniziano con 1, 3, m, n o 2
     legacy = re.match(r'^[13mn2][a-zA-Z0-9]{25,34}$', s)
     if legacy:
         return True
-    # Controlla indirizzi bech32: per mainnet (bc1), testnet (tb1) e regtest (bcrt1)
     bech32 = re.match(r'^(bc1|[tb]crt1)[a-z0-9]{6,90}$', s)
     return bech32 is not None
 
@@ -57,7 +40,7 @@ def index():
         chain = blockchain_info.get("chain")
         blocks = blockchain_info.get("blocks")
         bestblockhash = blockchain_info.get("bestblockhash")
-        difficulty = blockchain_info.get("difficulty")
+        difficulty = blockchain_info.get("difficulty") # nel template da visualizzare come intero
         mediantime = blockchain_info.get("mediantime")
         size_on_disk = blockchain_info.get("size_on_disk")
         
@@ -70,17 +53,18 @@ def index():
         circulating_total = txoutset_info.get("total_amount")
         txout_transactions = txoutset_info.get("transactions")
         
-        # Recupera gli ultimi 5 blocchi
+        # Recupera gli ultimi 10 blocchi
         last_blocks = []
         current_height = blocks
-        start_height = max(0, current_height - 4)
+        start_height = max(0, current_height - 9)
         for h in range(start_height, current_height + 1):
             block_hash = rpc.getblockhash(h)
             block_data = rpc.getblock(block_hash)
             last_blocks.append({
                 "height": block_data["height"],
                 "hash": block_data["hash"],
-                "time": block_data["time"]
+                "time": block_data["time"],
+                "nTx": block_data["nTx"]
             })
         last_blocks = sorted(last_blocks, key=lambda x: x["height"], reverse=True)
         
@@ -132,15 +116,12 @@ def search():
 def block(identifier):
     rpc = get_rpc_connection()
     try:
-        # Se l'identificatore è numerico, ricava il block hash dall'altezza
         if is_numeric(identifier):
             block_hash = rpc.getblockhash(int(identifier))
         else:
             block_hash = identifier
-        # Ottieni il blocco con verbose=2 (dati completi)
         block_data = rpc.getblock(block_hash, 2)
         
-        # Estrai le informazioni generali
         general_info = {
             "hash": block_data.get("hash"),
             "confirmations": block_data.get("confirmations"),
@@ -161,24 +142,49 @@ def block(identifier):
             "size": block_data.get("size"),
             "weight": block_data.get("weight")
         }
-        
-        # Le transazioni del blocco: il primo è la coinbase, gli altri normali
+
         txs = block_data.get("tx", [])
-        coinbase_tx = None
+        coinbase_info = {}
         normal_txs = []
+        
         if txs:
-            coinbase_tx = txs[0]
+            # Estrai la coinbase creando una struttura specifica
+            coinbase = txs[0]
+
+            coinbase_info = {
+                "txid": coinbase.get("txid"),
+                # Prendi il valore del primo output, se presente
+                "value": coinbase.get("vout")[0].get("value") if coinbase.get("vout") else None,
+                # Prendi l'indirizzo dal primo output, verificando se è in "address" o in "addresses"
+                "address": coinbase.get("vout")[0].get("scriptPubKey", {}).get("address") if coinbase.get("vout") else None
+            }
+            # Per le transazioni normali, estrai solo i campi utili
             for tx in txs[1:]:
-                summary_tx = {
+                # Calcola il totale degli input della transazione
+                total_in = 0.0
+                for vin in tx.get("vin", []):
+                    # Recupera la transazione precedente per ottenere il valore dell'output utilizzato da questo input
+                    prev_tx = rpc.getrawtransaction(vin["txid"], True)
+                    prev_vout = prev_tx["vout"][vin["vout"]]
+                    total_in += float(prev_vout.get("value", 0))
+    
+                # Calcola il totale degli output della transazione
+                total_out = sum(float(vout.get("value", 0)) for vout in tx.get("vout", []))
+    
+                # La fee è la differenza tra il totale degli input e quello degli output
+                fee = total_in - total_out if total_in > 0 else 0.0
+
+                # Crea una struttura specifica per la transazione normale
+                tx_info = {
                     "txid": tx.get("txid"),
-                    "size": tx.get("size"),
                     "vsize": tx.get("vsize"),
                     "weight": tx.get("weight"),
-                    "locktime": tx.get("locktime")
+                    "fee": fee
                 }
-                normal_txs.append(summary_tx)
-        
-        return render_template("block.html", general_info=general_info, coinbase_tx=coinbase_tx, normal_txs=normal_txs)
+                normal_txs.append(tx_info)
+ 
+        return render_template("block.html", general_info=general_info, coinbase_tx=coinbase_info, normal_txs=normal_txs)
+
     except JSONRPCException as e:
         return render_template("error.html", error=str(e))
     except Exception as ex:
@@ -188,10 +194,9 @@ def block(identifier):
 def transaction(txid):
     rpc = get_rpc_connection()
     try:
-        # Usa sempre getrawtransaction con verbose=True per ottenere il JSON completo dalla blockchain
         tx = rpc.getrawtransaction(txid, True)
         
-        # Prepara i dati generali della transazione
+        # Raggruppa le informazioni generali della transazione
         tx_info = {
             "hex": tx.get("hex"),
             "txid": tx.get("txid"),
@@ -203,56 +208,57 @@ def transaction(txid):
             "locktime": tx.get("locktime")
         }
         
-        # Calcola la fee: somma degli input (escludendo eventuali coinbase) meno la somma degli output
-        total_in = 0.0
-        for vin in tx.get("vin", []):
+        # Raggruppa gli input in modo semplificato: per ciascun input, considera txid, vout e sequence
+        raw_vin = tx.get("vin", [])
+        tx_inputs = []
+        for vin in raw_vin:
             if "coinbase" in vin:
-                continue
-            prev_tx = rpc.getrawtransaction(vin["txid"], True)
-            prev_vout = prev_tx["vout"][vin["vout"]]
-            total_in += float(prev_vout.get("value", 0))
-        total_out = sum(float(vout.get("value", 0)) for vout in tx.get("vout", []))
-        fee = total_in - total_out if total_in > 0 else 0.0
+                tx_inputs.append({
+                    "txid": "Coinbase",
+                    "vout": None,
+                    "sequence": vin.get("sequence")
+                })
+            else:
+                tx_inputs.append({
+                    "txid": vin.get("txid"),
+                    "vout": vin.get("vout"),
+                    "sequence": vin.get("sequence")
+                })
         
-        # Determina se la transazione è coinbase
-        is_coinbase = any("coinbase" in vin for vin in tx.get("vin", []))
-        
-        if is_coinbase:
-            sender = None
-            recipients = []
-            # Filtra gli output di tipo "nulldata"
-            for v in tx.get("vout", []):
-                spk_v = v.get("scriptPubKey", {})
-                if spk_v.get("type") == "nulldata":
-                    continue
-                recipient = {
-                    "address": spk_v.get("address") or (spk_v.get("addresses", [None])[0]),
-                    "value": v.get("value", 0)
-                }
-                recipients.append(recipient)
-        else:
-            vouts = tx.get("vout", [])
-            if len(vouts) > 0:
-                first_vout = vouts[0]
-                spk = first_vout.get("scriptPubKey", {})
-                sender = {
-                    "address": spk.get("address") or (spk.get("addresses", [None])[0]),
+        # Raggruppa gli output: per ciascun output, considera value, n e i dettagli dello scriptPubKey
+        raw_vout = tx.get("vout", [])
+        tx_outputs = []
+        for v in raw_vout:
+            spk = v.get("scriptPubKey", {})
+            tx_outputs.append({
+                "value": v.get("value"),
+                "n": v.get("n"),
+                "scriptPubKey": {
                     "asm": spk.get("asm"),
                     "hex": spk.get("hex"),
-                    "type": spk.get("type"),
-                    "value": first_vout.get("value", 0)
+                    "address": spk.get("address") if spk.get("address") else (spk.get("addresses")[0] if spk.get("addresses") else None),
+                    "type": spk.get("type")
                 }
-                recipients = []
-                for v in vouts[1:]:
-                    spk_v = v.get("scriptPubKey", {})
-                    recipient = {
-                        "address": spk_v.get("address") or (spk_v.get("addresses", [None])[0]),
-                        "value": v.get("value", 0)
-                    }
-                    recipients.append(recipient)
+            })
         
-        return render_template("transaction.html", tx_info=tx_info, sender=sender, 
-                               recipients=recipients, fee=fee, is_coinbase=is_coinbase)
+        # Calcola la fee solo se la transazione non è coinbase
+        if not any("coinbase" in vin for vin in raw_vin):
+            total_in = 0.0
+            for vin in raw_vin:
+                prev_tx = rpc.getrawtransaction(vin["txid"], True)
+                prev_vout = prev_tx["vout"][vin["vout"]]
+                total_in += float(prev_vout.get("value", 0))
+            total_out = sum(float(v.get("value", 0)) for v in raw_vout)
+            fee = total_in - total_out if total_in > 0 else 0.0
+        else:
+            fee = None
+        
+        return render_template("transaction.html", 
+                               tx_info=tx_info, 
+                               tx_inputs=tx_inputs, 
+                               tx_outputs=tx_outputs,
+                               fee=fee, 
+                               is_coinbase=any("coinbase" in vin for vin in raw_vin))
     except JSONRPCException as e:
         return render_template("error.html", error=str(e))
     except Exception as ex:
@@ -262,53 +268,29 @@ def transaction(txid):
 def address(address):
     rpc = get_rpc_connection()
     try:
-        try:
-            # Importa l'indirizzo se non è già presente
-            rpc.importaddress(address, "", True)
-        except JSONRPCException:
-            pass
-        
-        # Esegui lo scan degli UTXO per l'indirizzo
-        scan_result = rpc.scantxoutset("start", [f"addr({address})"])
+        # Costruisci il descriptor come lista Python
+        descriptor = [f"addr({address})"]
+        scan_result = rpc.scantxoutset("start", descriptor)
         if scan_result and scan_result.get("success", False):
-            total_amount = scan_result.get("total_amount", 0)
-            unspents = scan_result.get("unspents", [])
-            height = scan_result.get("height")
-            
-            # Per ottenere la cronologia delle transazioni, usiamo listtransactions
-            transactions = rpc.listtransactions("*", 100, 0, True)
-            tx_history = [tx for tx in transactions if tx.get("address", "").lower() == address.lower()]
+            # Raggruppa le informazioni generali ottenute dalla scansione
+            general_info = {
+                "txouts": scan_result.get("txouts"),
+                "height": scan_result.get("height"),
+                "bestblock": scan_result.get("bestblock"),
+                "total_amount": scan_result.get("total_amount", 0)
+            }
+            # La lista delle transazioni (UTXO) si trova in "unspents"
+            txs = scan_result.get("unspents", [])
             
             return render_template("address.html",
                                    address=address,
-                                   total_amount=total_amount,
-                                   unspents=unspents,
-                                   height=height,
-                                   tx_history=tx_history)
+                                   general_info=general_info,
+                                   txs=txs)
         else:
             flash("Nessun UTXO trovato per questo indirizzo.")
             return redirect(url_for('index'))
-    except JSONRPCException as e:
+    except Exception as e:
         return render_template("error.html", error=str(e))
-    except Exception as ex:
-        return render_template("error.html", error=str(ex))
 
 if __name__ == '__main__':
-    # Usa FileHandler per scrivere sempre sullo stesso file
-    file_handler = logging.FileHandler('logs/explorer.log')
-    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]')
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.INFO)
-    
-    app.logger.addHandler(file_handler)
-    app.logger.setLevel(logging.INFO)
-    
-    # Aggiungi lo stesso handler al logger di Werkzeug per loggare le richieste HTTP
-    werkzeug_logger = logging.getLogger('werkzeug')
-    werkzeug_logger.addHandler(file_handler)
-    werkzeug_logger.setLevel(logging.INFO)
-    
-    app.logger.info("Explorer avviato")
-    
-    # Avvia l'app senza reloader per evitare doppie inizializzazioni
     app.run(debug=True, use_reloader=False)

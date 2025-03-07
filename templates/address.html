@@ -1,46 +1,84 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="address-info">
-  <h2>Dettagli Indirizzo</h2>
+  
+<!-- Blocco 1: Informazioni Generali -->
+<div class="address-general">
+  <h2>Informazioni generali</h2>
   <div class="detail-row">
-    <span class="detail-label">Indirizzo:</span>
+    <span class="detail-label">Address:</span>
     <span class="detail-value">{{ address }}</span>
   </div>
   <div class="detail-row">
-    <span class="detail-label">Totale UTXO:</span>
-    <span class="detail-value">{{ total_amount | fnum }} BTC</span>
+    <span class="detail-label">Txouts:</span>
+    <span class="detail-value">{{ general_info.txouts }}</span>
   </div>
   <div class="detail-row">
-    <span class="detail-label">Altezza di Scan:</span>
-    <span class="detail-value">{{ height }}</span>
+    <span class="detail-label">Scan height:</span>
+    <span class="detail-value">{{ general_info.height }}</span>
   </div>
+  <div class="detail-row">
+    <span class="detail-label">Best Block:</span>
+    <span class="detail-value">
+      <a href="{{ url_for('block', identifier=general_info.bestblock) }}">{{ general_info.bestblock }}</a>
+    </span>
+  </div>
+  <div class="detail-row">
+    <span class="detail-label">Total UTXO:</span>
+    <span class="detail-value">{{ general_info.total_amount | fnum }} BTC</span>
+  </div>
+</div>
   
-  <h3>Transazioni (UTXO) Riguardanti l'Indirizzo</h3>
-  {% if unspents %}
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>TxID</th>
-          <th>Importo (BTC)</th>
-          <th>Blockhash</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for utxo in unspents %}
-        <tr>
-          <td>
+<!-- Blocco 2: Transazioni (UTXO) -->
+<div class="address-txs">
+  <h2>Transazioni (UTXO) Riguardanti l'Indirizzo</h3>
+  {% if txs %}
+    {% for utxo in txs %}
+      <div class="tx-subblock">
+        <div class="detail-row">
+          <span class="detail-label">TxID:</span>
+          <span class="detail-value">
             <a href="{{ url_for('transaction', txid=utxo.txid) }}">{{ utxo.txid }}</a>
-          </td>
-          <td>{{ utxo.amount | fnum }}</td>
-          <td>
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Vout:</span>
+          <span class="detail-value">{{ utxo.vout }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">ScriptPubKey / Desc:</span>
+          <span class="detail-value">
+            {% if utxo.desc %}
+              {{ utxo.desc }}
+            {% else %}
+              {{ utxo.scriptPubKey }}
+            {% endif %}
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Amount (BTC):</span>
+          <span class="detail-value">{{ utxo.amount | fnum }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Coinbase:</span>
+          <span class="detail-value">{{ utxo.coinbase }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Height:</span>
+          <span class="detail-value">{{ utxo.height }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Blockhash:</span>
+          <span class="detail-value">
             <a href="{{ url_for('block', identifier=utxo.blockhash) }}">{{ utxo.blockhash }}</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Confirmations:</span>
+          <span class="detail-value">{{ utxo.confirmations }}</span>
+        </div>
+      </div>
+      <br>
+    {% endfor %}
   {% else %}
     <p>Nessuna transazione trovata per questo indirizzo.</p>
   {% endif %}
